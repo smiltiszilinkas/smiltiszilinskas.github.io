@@ -2948,26 +2948,469 @@
       });
     </script>
   </section>
-  <div>
-    <script type="text/javascript">
-      (function (d, t) {
-        var v = d.createElement(t), s = d.getElementsByTagName(t)[0];
-        v.onload = function () {
-          window.voiceflow.chat.load({
-            verify: { projectID: '6849f5a3326d57d32ddc86bd' },
-            url: 'https://general-runtime.voiceflow.com',
-            versionID: 'production',
-            voice: {
-              url: "https://runtime-api.voiceflow.com"
-            },
-            assistant: {
-              stylesheet: "https://smiltiszilinkas.github.io/smiltiszilinskas.github.io/voiceflow.css"
-            }
-          });
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/geist-font/1.0.0/fonts/geist-sans/style.min.css">
+  <style>
+    #whole-chatbot {
+      font-family: 'Geist Sans', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      display: flex;
+      justify-content: flex-end;
+      align-items: flex-end;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Chat Widget Styling */
+    #chat-widget-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 350px;
+      height: 500px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      display: none;
+      flex-direction: column;
+      z-index: 1000;
+      overflow: hidden;
+    }
+
+    #chat-widget-header {
+      background: #0058FF;
+      color: white;
+      padding: 20px;
+      font-weight: bold;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 18px;
+    }
+
+    #chat-widget-body {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    /* Increased spacing between messages */
+    #chat-widget-body p {
+      margin-bottom: 15px;
+      /* Adjust spacing between messages */
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      word-wrap: break-word;
+    }
+
+    #chat-widget-footer {
+      padding: 12px;
+      border-top: 1px solid #ddd;
+      display: flex;
+      gap: 10px;
+    }
+
+    #chat-widget-input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      outline: none;
+    }
+
+    #chat-widget-send {
+      background: #0058FF;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    /* Make the chat bubble a perfect circle */
+    #chat-widget-button {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #0058FF;
+      color: white;
+      border: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 20px;
+      z-index: 1001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .reload {
+      font-size: 20px;
+      font-weight: 700;
+      font-family: Lucida Sans Unicode
+    }
+  </style>
+  <div id="whole-chatbot">
+
+    <button id="chat-widget-button">💬</button>
+
+    <div id="chat-widget-container">
+      <div id="chat-widget-header">
+        <button onclick="resetChat()"
+          style="border:none; color:white; font-weight: 900; background-color: #0058FF;"><span
+            class="reload">&#x21bb;</span>
+        </button>
+        <div><img src="https://forum.flespi.com/assets/files/2022-08-22/1661156544-254100-gpswox-logo-small.png"
+            alt="Logo" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
+          <span>GPSWOX</span>
+        </div>
+
+        <button onclick="closeChatWidget()"
+          style="border:none; color:white; font-weight: 700; background-color: #0058FF; font-size: 20px;">✖</button>
+      </div>
+      <div id="chat-widget-body">
+        <p style="margin-bottom: 20px;"><strong>Hi 👋, how can we help?</strong></p>
+      </div>
+      <div id="chat-widget-footer">
+        <input type="text" id="chat-widget-input" placeholder="Type your message here...">
+        <button id="chat-widget-send">Send</button>
+      </div>
+    </div>
+
+    <script>
+      window.ChatWidgetConfig = {
+        webhook: {
+          url: 'https://ugniuszilinskas.app.n8n.cloud/webhook/d159ce35-2f3c-4008-bbf6-4ca6bbef679e/chat',
+          route: 'general'
+        },
+        style: {
+          primaryColor: '#0058FF', //bright blue
+          secondaryColor: '#6b3fd4',
+          position: 'right',
+          backgroundColor: '#ffffff',
+          fontColor: '#333333'
         }
-        v.src = "https://cdn.voiceflow.com/widget-next/bundle.mjs"; v.type = "text/javascript"; s.parentNode.insertBefore(v, s);
-      })(document, 'script');
+      };
+
+
+
+      function getChatId() {
+        let chatId = sessionStorage.getItem("chatId");
+        if (!chatId) {
+          chatId = "chat_" + Math.random().toString(36).substr(2, 9); // Unique ID
+          sessionStorage.setItem("chatId", chatId);
+        }
+        return chatId;
+      }
+
+      function saveChatState() {
+        const chatContent = chatBody.innerHTML;
+        localStorage.setItem("chatState", JSON.stringify(state));
+        localStorage.setItem("chatContent", chatContent);
+      }
+
+      function resetChat() {
+        localStorage.removeItem("chatContent");
+        localStorage.removeItem("chatState");
+        sessionStorage.removeItem("chatId");
+        chatBody.innerHTML = "";
+
+        // Re-add the initial greeting
+        const greeting = document.createElement("p");
+        greeting.style.marginBottom = "20px";
+        greeting.innerHTML = "<strong>Hi 👋, how can we help?</strong>";
+        chatBody.appendChild(greeting);
+
+        state = { step: "start", intent: null, deviceVolume: null };
+
+        goToStep("start");
+      }
+
+      // Show chat widget and hide bubble
+      document.getElementById("chat-widget-button").addEventListener("click", function () {
+        document.getElementById("chat-widget-container").style.display = "flex";
+        document.getElementById("chat-widget-button").style.display = "none";
+      });
+
+      // Close chat widget and show bubble
+      function closeChatWidget() {
+        document.getElementById("chat-widget-container").style.display = "none";
+        document.getElementById("chat-widget-button").style.display = "flex";
+      }
+
+      // Send message to n8n webhook
+      document.getElementById("chat-widget-send").addEventListener("click", function () {
+        let message = document.getElementById("chat-widget-input").value;
+        if (message.trim() === "") return;
+
+        let chatBody = document.getElementById("chat-widget-body");
+        let newMessage = document.createElement("p");
+        newMessage.textContent = message;
+        newMessage.style.color = "#E5EEFF";
+        newMessage.style.background = "#0058FF";
+        newMessage.style.justifySelf = "flex-end";
+        chatBody.appendChild(newMessage);
+
+        let chatId = getChatId(); // Retrieve the session chat ID
+
+        fetch(window.ChatWidgetConfig.webhook.url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chatId: chatId,  // Attach chat ID for memory tracking
+            message: message,
+            route: window.ChatWidgetConfig.webhook.route
+          })
+        })
+          .then(response => response.json())
+          .then(data => {
+            let botMessage = document.createElement("p");
+            botMessage.innerHTML = data.output || "Sorry, I couldn't understand that.";
+            botMessage.style.color = "#1a1e23";
+            botMessage.style.background = "#f1f2f2"; //bot message
+            botMessage.style.marginTop = "10px";
+            chatBody.appendChild(botMessage);
+          })
+          .catch(error => console.error("Error:", error));
+
+        document.getElementById("chat-widget-input").value = "";
+      });
+      const chatBody = document.getElementById("chat-widget-body");
+      const chatInput = document.getElementById("chat-widget-input");
+      const chatSend = document.getElementById("chat-widget-send");
+
+      let state = {
+        step: "start",
+        intent: null,
+        deviceVolume: null
+      };
+
+      function showUserMessage(text) {
+        const p = document.createElement("p");
+        p.textContent = text;
+        p.style.background = "#0058FF"; // user message style
+        p.style.color = "#E5EEFF";
+        p.style.justifySelf = "flex-end";
+        p.style.marginTop = "10px";
+        chatBody.appendChild(p);
+        chatBody.scrollTop = chatBody.scrollHeight;
+
+        saveChatState();
+      }
+
+      function renderButtons(options) {
+        options.forEach(opt => {
+          const btn = document.createElement("button");
+          btn.textContent = opt.label;
+          btn.style.margin = "5px";
+          btn.style.padding = "10px 12px";
+          btn.style.border = "none";
+          btn.style.borderRadius = "6px";
+          btn.style.cursor = "pointer";
+          btn.style.background = "#E5EEFF";
+          btn.style.color = "#0058FF";
+
+          // Animation styles
+          btn.style.opacity = "0";
+          btn.style.transform = "translateY(16px)";
+          btn.style.transition = "opacity 100ms ease-out, transform 100ms ease-out";
+
+          // Hover effect
+          btn.addEventListener("mouseenter", () => {
+            btn.style.background = "#d0dcf2";
+            btn.style.color = "#0041c4";
+          });
+
+          btn.addEventListener("mouseleave", () => {
+            btn.style.background = "#E5EEFF";
+            btn.style.color = "#0058FF";
+          });
+
+          btn.onclick = () => {
+            showUserMessage(opt.label);
+            opt.onClick();
+          };
+
+          chatBody.appendChild(btn);
+
+          requestAnimationFrame(() => {
+            btn.style.opacity = "1";
+            btn.style.transform = "translateY(0)";
+          });
+        });
+
+        chatBody.scrollTop = chatBody.scrollHeight;
+        saveChatState();
+      }
+
+
+      function showBotMessage(text, onComplete = null) {
+        const lastMessage = chatBody.querySelector("p:last-of-type");
+        if (lastMessage && lastMessage.textContent === text) {
+          setTimeout(onComplete, 50);
+          return;
+        };
+
+        const p = document.createElement("p");
+        p.style.background = "#f1f2f2";
+        p.style.color = "#1a1e23";
+        p.style.padding = "10px";
+        p.style.borderRadius = "6px";
+        p.style.maxWidth = "80%";
+        p.style.marginTop = "10px";
+        p.textContent = "";
+        chatBody.appendChild(p);
+        chatBody.scrollTop = chatBody.scrollHeight;
+
+        let i = 0;
+        const typingSpeed = 20;
+
+        function typeChar() {
+          if (i < text.length) {
+            p.textContent += text.charAt(i);
+            i++;
+            chatBody.scrollTop = chatBody.scrollHeight;
+            setTimeout(typeChar, typingSpeed);
+          } else if (onComplete) {
+            // Wait one second then call callback
+            saveChatState();
+            setTimeout(onComplete, 200);
+          }
+        }
+
+        typeChar();
+      }
+
+
+      function clearOptions() {
+        const buttons = chatBody.querySelectorAll("button");
+        buttons.forEach(btn => btn.remove());
+      }
+
+      function goToStep(step) {
+        clearOptions();
+
+        switch (step) {
+          case "start":
+            chatInput.disabled = true;
+            chatSend.disabled = true;
+            showBotMessage(
+              "Hi! May I ask a few questions to recommend the best next step?",
+              () => renderButtons([
+                { label: "✅ Yes", onClick: () => goToStep("intent") },
+                {
+                  label: "❌ No, I want to talk with a real person", onClick: () => {
+                    showBotMessage(
+                      "No problem! You can book a demo with our team [here](https://your-demo-link.com)."
+                    );
+                  }
+                }
+              ])
+            );
+            break;
+
+          case "intent":
+            state.step = "intent";
+            showBotMessage(
+              "What are you looking to do with GPSWOX?",
+              () => renderButtons(
+                [
+                  { label: "Set up a new fleet tracking system", onClick: () => { state.intent = "fleet"; goToStep("device"); } },
+                  { label: "Start a white label GPS tracking business", onClick: () => { state.intent = "white-label"; goToStep("device"); } },
+                  { label: "Replace existing GPS tracking software", onClick: () => { state.intent = "replace"; goToStep("device"); } },
+                  {
+                    label: "Find a lost phone", onClick: () => {
+                      showBotMessage("🟥 Unfortunately, GPSWOX is designed for tracking GPS devices and fleet management. We’re not able to help recover lost phones.");
+                      goToStep("no-buttons");
+                      chatInput.disabled = false;
+                      chatSend.disabled = false;
+                    }
+                  }
+                ]
+              )
+            );
+            break;
+
+          case "device":
+            state.step = "device";
+            showBotMessage("How many devices are you looking to track?");
+            renderButtons([
+              { label: "Less than 5 Devices", onClick: () => { state.deviceVolume = "<5"; goToStep("final"); } },
+              { label: "1 - 100 Devices", onClick: () => { state.deviceVolume = "1-100"; goToStep("final"); } },
+              { label: "100 - 500 Devices", onClick: () => { state.deviceVolume = "100-500"; goToStep("final"); } },
+              { label: "500 - 1000 Devices", onClick: () => { state.deviceVolume = "500-1000"; goToStep("final"); } },
+              { label: "Unlimited", onClick: () => { state.deviceVolume = "unlimited"; goToStep("final"); } },
+            ]);
+            break;
+
+          case "final":
+            chatInput.disabled = false;
+            chatSend.disabled = false;
+
+            const { intent, deviceVolume } = state;
+
+            if (deviceVolume === "<5") {
+              showBotMessage("We recommend a personal tracking plan. Check out our [personal use plans](https://your-link.com/personal).");
+              return;
+            }
+
+            if (intent === "fleet") {
+              if (deviceVolume === "1-100") {
+                showBotMessage("We can help you set up your fleet quickly. Start a [free trial](https://your-trial-link.com) or book a [live demo](https://your-demo-link.com).");
+              } else {
+                showBotMessage("Let’s get your fleet set up. Book a [live demo](https://your-demo-link.com) to get started.");
+              }
+            } else if (intent === "white-label") {
+              showBotMessage("We specialize in white label GPS solutions. Try our platform free for 30 days or subscribe to a lifetime plan with full customization.");
+            } else if (intent === "replace") {
+              if (["500-1000", "unlimited"].includes(deviceVolume)) {
+                showBotMessage("We’ll help you migrate from your current provider. Want to book a [demo](https://your-demo-link.com)?");
+              } else {
+                showBotMessage("Try GPSWOX free and see how it compares. We offer migration support too.");
+              }
+            }
+            break;
+
+          case "no-buttons":
+            chatInput.disabled = false;
+            chatSend.disabled = false;
+            break;
+        }
+      }
+      window.addEventListener("DOMContentLoaded", () => {
+        const savedContent = localStorage.getItem("chatContent");
+        const savedState = localStorage.getItem("chatState");
+
+        if (savedContent && savedState) {
+          chatBody.innerHTML = savedContent;
+          state = JSON.parse(savedState);
+
+          // Delay just a bit to let DOM settle before re-entering step
+          setTimeout(() => {
+            // Resume current step to re-render any missing buttons
+            if (["intent", "device", "final"].includes(state.step)) {
+              goToStep(state.step);
+            }
+          }, 300);
+        }
+      });
+
+      document.getElementById("chat-widget-button").addEventListener("click", () => {
+        document.getElementById("chat-widget-container").style.display = "flex";
+        document.getElementById("chat-widget-button").style.display = "none";
+
+        const hasSavedState = localStorage.getItem("chatState");
+        if (!hasSavedState || state.step === "start") {
+          setTimeout(() => goToStep("start"), 500);
+        }
+      });
     </script>
+
   </div>
   <div style="display: none;">
 
