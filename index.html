@@ -3170,10 +3170,13 @@
           .then(response => response.json())
           .then(data => {
             let botMessage = document.createElement("p");
-            botMessage.innerHTML = data.output || "Sorry, I couldn't understand that.";
+            botMessage.padding = "10px";
+            botMessage.borderRadius = "6px";
+            botMessage.maxWidth = "80%";
+            botMessage.marginTop = "10px";
+            botMessage.innerHTML = "";
             botMessage.style.color = "#1a1e23";
             botMessage.style.background = "#f1f2f2"; //bot message
-            botMessage.style.marginTop = "10px";
             chatBody.appendChild(botMessage);
             chatBody.scrollTop = chatBody.scrollHeight;
 
@@ -3181,15 +3184,17 @@
             const typingSpeed = 20;
 
             function typeChar() {
-              if (i < text.length) {
-                p.textContent += text.charAt(i);
+              if (data.output && i < data.output.length) {
+                botMessage.innerHTML += data.output.charAt(i);
                 i++;
                 chatBody.scrollTop = chatBody.scrollHeight;
                 setTimeout(typeChar, typingSpeed);
-              } else if (onComplete) {
-                // Wait one second then call callback
+              } else if (!data.output) {
+                botMessage.innerHTML = "Sorry, I couldn't understand that.";
                 saveChatState();
-                setTimeout(onComplete, 200);
+
+              } else {
+                saveChatState();
               }
             }
 
@@ -3344,7 +3349,8 @@
                   { label: "Replace existing GPS tracking software", onClick: () => { state.intent = "replace"; goToStep("device"); } },
                   {
                     label: "Find a lost phone", onClick: () => {
-                      showBotMessage("🟥 Unfortunately, GPSWOX is designed for tracking GPS devices and fleet management. We’re not able to help recover lost phones.");
+                      showBotMessage("🟥 Unfortunately, GPSWOX is designed for tracking GPS devices and fleet management. We’re not able to help recover lost phones.",
+                        () => renderButtons([]));
                       goToStep("no-buttons");
                       chatInput.disabled = false;
                       chatSend.disabled = false;
@@ -3396,6 +3402,8 @@
             break;
 
           case "no-buttons":
+            state.step = "no-buttons";
+            saveChatState();
             chatInput.disabled = false;
             chatSend.disabled = false;
             break;
