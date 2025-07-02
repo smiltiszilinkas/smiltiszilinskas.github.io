@@ -3065,9 +3065,9 @@
           style="border:none; color:white; font-weight: 900; background-color: #0058FF;"><span
             class="reload">&#x21bb;</span>
         </button>
-        <div><img src="https://forum.flespi.com/assets/files/2022-08-22/1661156544-254100-gpswox-logo-small.png"
-            alt="Logo" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;" />
-          <span>GPSWOX</span>
+        <div><img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBaXTFmlGCw3R4REI_V0WHxcSkMHwpTJVHNQ&s"
+            alt="Logo" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;" />
+          <span>Laura</span>
         </div>
 
         <button onclick="closeChatWidget()"
@@ -3082,10 +3082,11 @@
       </div>
     </div>
 
+
     <script>
       window.ChatWidgetConfig = {
         webhook: {
-          url: 'https://n8n.ai-chat-bot.cloud/webhook/d159ce35-2f3c-4008-bbf6-4ca6bbef679e/chat',
+          url: 'https://n8n.ai-chat-bot.cloud/webhook/7783ab37-d2ed-4241-b872-b081b9900f12/chat',
           route: 'general'
         },
         style: {
@@ -3131,6 +3132,20 @@
         goToStep("start");
       }
 
+      function convertMarkdownLinks(text) {
+        text = text.replace(
+          /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+          '<a href="$2" target="_blank" style="color: #007BFF; text-decoration: underline;">$1</a>'
+        );
+
+        text = text.replace(
+          /(?<!["'>])(https?:\/\/[^\s<]+)/g,
+          '<a href="$1" target="_blank" style="color: #007BFF; text-decoration: underline;">$1</a>'
+        );
+
+        return text;
+      }
+
       // Show chat widget and hide bubble
       document.getElementById("chat-widget-button").addEventListener("click", function () {
         document.getElementById("chat-widget-container").style.display = "flex";
@@ -3174,7 +3189,6 @@
             botMessage.borderRadius = "6px";
             botMessage.maxWidth = "80%";
             botMessage.marginTop = "10px";
-            botMessage.innerHTML = "";
             botMessage.style.color = "#1a1e23";
             botMessage.style.background = "#f1f2f2"; //bot message
             chatBody.appendChild(botMessage);
@@ -3182,18 +3196,19 @@
 
             let i = 0;
             const typingSpeed = 20;
-
+            let htmlText = convertMarkdownLinks(data.output);
             function typeChar() {
               if (data.output && i < data.output.length) {
-                botMessage.innerHTML += data.output.charAt(i);
+                botMessage.textContent += data.output.charAt(i);
                 i++;
                 chatBody.scrollTop = chatBody.scrollHeight;
                 setTimeout(typeChar, typingSpeed);
               } else if (!data.output) {
-                botMessage.innerHTML = "Sorry, I couldn't understand that.";
+                botMessage.textContent = "Sorry, I couldn't understand that.";
                 saveChatState();
 
               } else {
+                botMessage.innerHTML = htmlText;
                 saveChatState();
               }
             }
@@ -3279,7 +3294,6 @@
           setTimeout(onComplete, 50);
           return;
         };
-
         const p = document.createElement("p");
         p.style.background = "#f1f2f2";
         p.style.color = "#1a1e23";
@@ -3287,23 +3301,41 @@
         p.style.borderRadius = "6px";
         p.style.maxWidth = "80%";
         p.style.marginTop = "10px";
-        p.textContent = "";
         chatBody.appendChild(p);
         chatBody.scrollTop = chatBody.scrollHeight;
+
+        // Store raw text for typing animation
+        const rawText = text;
+
+        const htmlText = convertMarkdownLinks(text);
 
         let i = 0;
         const typingSpeed = 20;
 
         function typeChar() {
-          if (i < text.length) {
-            p.textContent += text.charAt(i);
+          if (i < rawText.length) {
+            p.textContent += rawText.charAt(i);
             i++;
             chatBody.scrollTop = chatBody.scrollHeight;
             setTimeout(typeChar, typingSpeed);
-          } else if (onComplete) {
-            // Wait one second then call callback
+          } else {
+            // Replace plain text with HTML (adds clickable link)
+            p.innerHTML = htmlText;
+            // Bind click to simulate button press
+            const demoLink = p.querySelector("#demo-link-gpswox");
+            if (demoLink) {
+              demoLink.addEventListener("click", (e) => {
+                e.preventDefault();
+                const menuButton = document.querySelector("#toggler-id0");
+                if (menuButton) {
+                  menuButton.click();
+                } else {
+                  console.warn("Could not find the modal trigger element.");
+                }
+              });
+            }
             saveChatState();
-            setTimeout(onComplete, 200);
+            if (onComplete) setTimeout(onComplete, 200);
           }
         }
 
@@ -3330,8 +3362,11 @@
                 {
                   label: "❌ No, I want to talk with a real person", onClick: () => {
                     showBotMessage(
-                      "No problem! You can book a demo with our team [here](https://your-demo-link.com)."
-                    );
+                      "No problem! You can book a demo with our team [here](https://www.gpswox.com/#modal-demo-tour). Can I help you with something else?"
+                      , () => renderButtons([]));
+                    goToStep("no-buttons");
+                    chatInput.disabled = false;
+                    chatSend.disabled = false;
                   }
                 }
               ])
@@ -3378,25 +3413,35 @@
             chatSend.disabled = false;
 
             const { intent, deviceVolume } = state;
-
             if (deviceVolume === "<5") {
-              showBotMessage("We recommend a personal tracking plan. Check out our [personal use plans](https://your-link.com/personal).");
-              return;
+              showBotMessage("We recommend a personal [tracking plan](https://www.gpswox.com/en/gps-trackers-shop/gps-software/gps-tracking-and-fleet-management-system-1).",
+                () => renderButtons([]));
+              goToStep("no-buttons");
             }
 
             if (intent === "fleet") {
               if (deviceVolume === "1-100") {
-                showBotMessage("We can help you set up your fleet quickly. Start a [free trial](https://your-trial-link.com) or book a [live demo](https://your-demo-link.com).");
+                showBotMessage("We can help you set up your fleet quickly. Start a [free trial](https://www.gpswox.com/en/fleet-tracking-and-management-software#trial) or book a [live demo](https://www.gpswox.com/#modal-demo-tour). Do you have any other questions feel free to put it below.",
+                  () => renderButtons([]));
+                goToStep("no-buttons");
               } else {
-                showBotMessage("Let’s get your fleet set up. Book a [live demo](https://your-demo-link.com) to get started.");
+                showBotMessage("Let’s get your fleet set up. Book a [live demo](https://www.gpswox.com/#modal-demo-tour) to get started. Do you have any other questions feel free to put it below.",
+                  () => renderButtons([]));
+                goToStep("no-buttons");
               }
             } else if (intent === "white-label") {
-              showBotMessage("We specialize in white label GPS solutions. Try our platform free for 30 days or subscribe to a lifetime plan with full customization.");
+              showBotMessage("We specialize in white label GPS solutions. Try our platform free for 30 days or subscribe to a lifetime plan with full customization.",
+                () => renderButtons([]));
+              goToStep("no-buttons");
             } else if (intent === "replace") {
-              if (["500-1000", "unlimited"].includes(deviceVolume)) {
-                showBotMessage("We’ll help you migrate from your current provider. Want to book a [demo](https://your-demo-link.com)?");
-              } else {
-                showBotMessage("Try GPSWOX free and see how it compares. We offer migration support too.");
+              if (["100-500", "500-1000", "unlimited"].includes(deviceVolume)) {
+                showBotMessage("We’ll help you migrate from your current provider. Want to book a [demo](https://www.gpswox.com/#modal-demo-tour)?",
+                  () => renderButtons([]));
+                goToStep("no-buttons");
+              } else if (deviceVolume === "1-100") {
+                showBotMessage("Try GPSWOX [free trial](https://www.gpswox.com/en/fleet-tracking-and-management-software#trial) and see how it compares. We offer migration support too.",
+                  () => renderButtons([]));
+                goToStep("no-buttons");
               }
             }
             break;
@@ -3435,6 +3480,19 @@
         if (!hasSavedState || state.step === "start") {
           setTimeout(() => goToStep("start"), 500);
         }
+      });
+    </script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const input = document.getElementById('chat-widget-input');
+        const sendButton = document.getElementById('chat-widget-send');
+
+        input.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            sendButton.click();
+          }
+        });
       });
     </script>
 
