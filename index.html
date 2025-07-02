@@ -3143,7 +3143,50 @@
           '<a href="$1" target="_blank" style="color: #007BFF; text-decoration: underline;">$1</a>'
         );
 
+        // Convert newlines to <br> for HTML rendering
+        text = text.replace(/\n/g, '<br>');
+
         return text;
+      }
+
+      function typeFormattedHTML(htmlString, element, onComplete) {
+        const tokens = htmlString.match(/(<[^>]+>|[^<]+)/g); // Split into tags and text
+        let tokenIndex = 0;
+        let charIndex = 0;
+        let currentToken = '';
+
+        function typeNextChar() {
+          if (tokenIndex >= tokens.length) {
+            element.innerHTML = htmlString;
+            onComplete();
+            return;
+          }
+
+          if (charIndex === 0) {
+            currentToken = tokens[tokenIndex];
+          }
+
+          const isTag = currentToken.startsWith('<');
+          if (isTag) {
+            // Append entire tag instantly
+            element.innerHTML += currentToken;
+            tokenIndex++;
+            charIndex = 0;
+            setTimeout(typeNextChar, 0); // no delay for tags
+          } else {
+            // Type text one character at a time
+            element.innerHTML += currentToken.charAt(charIndex);
+            charIndex++;
+
+            if (charIndex >= currentToken.length) {
+              tokenIndex++;
+              charIndex = 0;
+            }
+            setTimeout(typeNextChar, 20); // typing speed
+          }
+        }
+
+        typeNextChar();
       }
 
       // Show chat widget and hide bubble
@@ -3197,23 +3240,8 @@
             let i = 0;
             const typingSpeed = 20;
             let htmlText = convertMarkdownLinks(data.output);
-            function typeChar() {
-              if (data.output && i < data.output.length) {
-                botMessage.textContent += data.output.charAt(i);
-                i++;
-                chatBody.scrollTop = chatBody.scrollHeight;
-                setTimeout(typeChar, typingSpeed);
-              } else if (!data.output) {
-                botMessage.textContent = "Sorry, I couldn't understand that.";
-                saveChatState();
+            typeFormattedHTML(htmlText, botMessage, saveChatState);
 
-              } else {
-                botMessage.innerHTML = htmlText;
-                saveChatState();
-              }
-            }
-
-            typeChar();
           })
           .catch(error => console.error("Error:", error));
 
