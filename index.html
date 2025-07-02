@@ -3143,6 +3143,9 @@
           '<a href="$1" target="_blank" style="color: #007BFF; text-decoration: underline;">$1</a>'
         );
 
+        // Convert bold markdown: **text**
+        text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
         // Convert newlines to <br> for HTML rendering
         text = text.replace(/\n/g, '<br>');
 
@@ -3216,6 +3219,31 @@
         newMessage.style.justifySelf = "flex-end";
         chatBody.appendChild(newMessage);
 
+        // Create typing indicator with dots inside a span
+        let typingIndicator = document.createElement("p");
+        typingIndicator.style.color = "#1a1e23";
+        typingIndicator.style.background = "#f1f2f2";
+        typingIndicator.style.maxWidth = "80%";
+        typingIndicator.style.marginTop = "2px";
+        typingIndicator.style.fontStyle = "italic";
+        typingIndicator.textContent = "Typing";
+
+        // Create dots span
+        let dotsSpan = document.createElement("span");
+        dotsSpan.style.fontSize = "24px"; // bigger dots
+        dotsSpan.style.marginLeft = "5px";
+        typingIndicator.appendChild(dotsSpan);
+        chatBody.appendChild(typingIndicator);
+        chatBody.scrollTop = chatBody.scrollHeight;
+
+        let dotCount = 0;
+        const maxDots = 3;
+        const dotInterval = setInterval(() => {
+          dotCount = (dotCount + 1) % (maxDots + 1);
+          dotsSpan.textContent = ".".repeat(dotCount);
+          chatBody.scrollTop = chatBody.scrollHeight;
+        }, 500);
+
         let chatId = getChatId(); // Retrieve the session chat ID
 
         fetch(window.ChatWidgetConfig.webhook.url, {
@@ -3229,6 +3257,10 @@
         })
           .then(response => response.json())
           .then(data => {
+            // Remove typing indicator & stop dots animation
+            clearInterval(dotInterval);
+            chatBody.removeChild(typingIndicator);
+            // create message
             let botMessage = document.createElement("p");
             botMessage.padding = "10px";
             botMessage.borderRadius = "6px";
