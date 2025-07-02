@@ -3172,6 +3172,7 @@
             element.innerHTML += currentToken;
             tokenIndex++;
             charIndex = 0;
+            element.parentElement.scrollTop = element.parentElement.scrollHeight;
             setTimeout(typeNextChar, 0); // no delay for tags
           } else {
             // Type text one character at a time
@@ -3182,6 +3183,7 @@
               tokenIndex++;
               charIndex = 0;
             }
+            element.parentElement.scrollTop = element.parentElement.scrollHeight;
             setTimeout(typeNextChar, 20); // typing speed
           }
         }
